@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Bs1SquareFill,
   Bs2SquareFill,
@@ -15,6 +16,7 @@ const ComandaStyle = () => {
   const [numColumnas, setNumColumnas] = useState(3);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOptions, setSelectedOptions] = useState([]);
+  const [selectedComanda, setSelectedComanda] = useState(null); // Estado para almacenar la comanda seleccionada
 
   const obtenerComandas = async () => {
     try {
@@ -54,11 +56,36 @@ const ComandaStyle = () => {
   };
 
   // Función para manejar el cambio en la opción seleccionada
-  const handleSelectChange = (comandaIndex, platoIndex, value) => {
-    const updatedOptions = [...selectedOptions];
-    updatedOptions[comandaIndex] = { ...updatedOptions[comandaIndex], [platoIndex]: value };
-    setSelectedOptions(updatedOptions);
-    console.log(`Comanda: ${comandaIndex}, Fila: ${platoIndex}, Valor seleccionado: ${value}`);
+  const handleSelectChange = async (comandaIndex, platoIndex, value) => {
+    // Si el valor seleccionado es "nostock"
+    if (value === 'nostock') {
+      const updatedComandas = [...filteredComandas];
+      const updatedPlatos = [...updatedComandas[comandaIndex].platos];
+      const updatedCantidades = [...updatedComandas[comandaIndex].cantidades];
+      // Eliminar la fila que tiene "nostock"
+      updatedPlatos.splice(platoIndex, 1);
+      updatedCantidades.splice(platoIndex, 1);
+      updatedComandas[comandaIndex].platos = updatedPlatos;
+      updatedComandas[comandaIndex].cantidades = updatedCantidades;
+      setFilteredComandas(updatedComandas);
+      console.log(`Fila eliminada: comanda ${comandaIndex}, plato ${platoIndex}`);
+      // Actualizar la comanda en la base de datos
+      try {
+        await axios.put(`${process.env.REACT_APP_API_COMANDA}/${filteredComandas[comandaIndex]._id}`, {
+          platos: updatedPlatos,
+          cantidades: updatedCantidades
+        });
+        console.log("Comanda actualizada en la base de datos.");
+      } catch (error) {
+        console.error("Error al actualizar la comanda en la base de datos:", error);
+      }
+    } else {
+      // De lo contrario, actualiza las opciones seleccionadas normalmente
+      const updatedOptions = [...selectedOptions];
+      updatedOptions[comandaIndex] = { ...updatedOptions[comandaIndex], [platoIndex]: value };
+      setSelectedOptions(updatedOptions);
+      console.log(`Comanda: ${comandaIndex}, Fila: ${platoIndex}, Valor seleccionado: ${value}`);
+    }
   };
 
   const todasFilasEntregadas = (comandaIndex) => {
@@ -67,6 +94,13 @@ const ComandaStyle = () => {
     const selectedPlatos = Object.values(selectedOptions[comandaIndex]);
     return selectedPlatos.length === comanda.platos.length && selectedPlatos.every(value => value === 'entregado');
   };
+
+  // Efecto para mostrar la información de la comanda seleccionada
+  useEffect(() => {
+    if (selectedComanda) {
+      console.log("Información de la comanda seleccionada:", selectedComanda);
+    }
+  }, [selectedComanda]);
 
   return (
     <div className="w-full">
@@ -155,6 +189,9 @@ const ComandaStyle = () => {
                       </option>
                       <option value="entregado" className="bg-green-400">
                         ENT
+                      </option>
+                      <option value="nostock" className="bg-red-400">
+                        NOS
                       </option>
                     </select>
                   </div>
