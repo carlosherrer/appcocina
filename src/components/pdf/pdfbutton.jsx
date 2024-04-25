@@ -6,28 +6,25 @@ const PDFButton = ({ data }) => {
     const doc = new jsPDF();
 
     if (!data || data.length === 0) {
-      // Si no hay datos, agregar un mensaje y guardar el PDF
       doc.setFontSize(12);
       doc.text("No hay datos disponibles", 10, 20);
       doc.save("informe_ventas.pdf");
       return;
     }
 
-    // Inicializar variables para el cálculo de totales
     let totalPlatos = 0;
     const dineroPorMesa = {};
     let dineroTotal = 0;
-    const ventasPorMozo = {}; // Objeto para almacenar las ventas por mozo
+    const ventasPorMozo = {};
     const cantidadesPorCategoria = {};
 
-    // Realizar los cálculos basados en los datos recibidos del API
     data.forEach((comanda) => {
-      let totalComanda = 0; // Variable para el total de la comanda actual
+      let totalComanda = 0; 
 
       comanda.cantidades.forEach((cantidad, index) => {
         totalPlatos += cantidad;
         const plato = comanda.platos[index];
-        if (plato && plato.categoria) { // Verificar que plato y plato.categoria estén definidos
+        if (plato && plato.categoria) { 
           const categoria = plato.categoria;
           if (!cantidadesPorCategoria[categoria]) {
             cantidadesPorCategoria[categoria] = {};
@@ -40,21 +37,19 @@ const PDFButton = ({ data }) => {
       comanda.platos.forEach((plato, index) => {
         const precio = parseFloat(plato.precio) || 0;
         const cantidad = parseInt(comanda.cantidades[index]) || 0;
-        totalComanda += precio * cantidad; // Calcular el total de la comanda actual
+        totalComanda += precio * cantidad; 
       });
 
       const mesa = comanda.mesas.nummesa;
-      dineroPorMesa[mesa] = (dineroPorMesa[mesa] || 0) + totalComanda; // Agregar al total de la mesa
-      dineroTotal += totalComanda; // Agregar al total de todas las comandas
+      dineroPorMesa[mesa] = (dineroPorMesa[mesa] || 0) + totalComanda;
+      dineroTotal += totalComanda;
 
-      // Calcular las ventas por mozo
       const mozoId = comanda.mozos.id;
       ventasPorMozo[mozoId] = (ventasPorMozo[mozoId] || 0) + totalComanda;
     });
 
     const pdfWidth = doc.internal.pageSize.getWidth();
 
-    // Función para agregar las cantidades por categoría a la página actual
     const addCantidadesPorCategoriaToPDF = (cantidadesPorCategoria, startY) => {
       let y = startY;
       Object.keys(cantidadesPorCategoria).forEach((categoria) => {
@@ -62,7 +57,6 @@ const PDFButton = ({ data }) => {
         y += 10;
         Object.keys(cantidadesPorCategoria[categoria]).forEach((plato) => {
           if (y + 13 > doc.internal.pageSize.height - 10) {
-            // Si no hay suficiente espacio en la página actual, agregar una nueva página
             doc.addPage();
             y = 20;
           }
@@ -73,7 +67,7 @@ const PDFButton = ({ data }) => {
           );
           y += 13;
         });
-        y += 5; // Espacio entre tablas
+        y += 5;
       });
       return y;
     };
@@ -90,10 +84,8 @@ const PDFButton = ({ data }) => {
     doc.setFontSize(12);
     let y = 35;
 
-    // Agregar las cantidades por categoría a la página actual
     y = addCantidadesPorCategoriaToPDF(cantidadesPorCategoria, y);
 
-    // Agregar las ventas por mozo al PDF
     y += 5;
     doc.text("Ventas por Mozo:", 10, y);
     y += 10;
@@ -102,7 +94,6 @@ const PDFButton = ({ data }) => {
         (comanda) => comanda.mozos.id === parseInt(mozoId)
       ).mozos.name;
       if (y + 10 > doc.internal.pageSize.height - 10) {
-        // Si no hay suficiente espacio en la página actual, agregar una nueva página
         doc.addPage();
         y = 20;
       }
@@ -110,7 +101,6 @@ const PDFButton = ({ data }) => {
       y += 10;
     });
 
-    // Agregar el dinero total de todas las comandas al PDF
     y += 5;
     doc.text(
       `Dinero Total de Todas las Comandas: $${dineroTotal.toFixed(2)}`,
@@ -119,10 +109,8 @@ const PDFButton = ({ data }) => {
     );
     y += 10;
 
-    // Agregar el dinero total por mesa al PDF
     Object.keys(dineroPorMesa).forEach((mesa) => {
       if (y + 10 > doc.internal.pageSize.height - 10) {
-        // Si no hay suficiente espacio en la página actual, agregar una nueva página
         doc.addPage();
         y = 20;
       }
