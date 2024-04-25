@@ -126,7 +126,7 @@ const PDFButton = ({ data }) => {
     doc.save("informe_ventas.pdf");
   };
 
-  return <button onClick={generatePDF}>Reporte del día</button>;
+  return <button onClick={generatePDF}>Reporte</button>;
 };
 
 export default PDFButton;
