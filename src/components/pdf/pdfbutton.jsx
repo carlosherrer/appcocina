@@ -126,7 +126,7 @@ const PDFButton = ({ data }) => {
     doc.save("informe_ventas.pdf");
   };
 
-  return <button onClick={generatePDF}>Reporte</button>;
+  return <button className={`${window.innerWidth > 1536 ? 'text-2xl' : ''}`} onClick={generatePDF}>Reporte</button>;
 };
 
 export default PDFButton;

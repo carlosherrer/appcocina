@@ -40,7 +40,6 @@ const ComandaStyle = () => {
   }, []);
 
   useEffect(() => {
-    // Filtrar comandas basadas en el término de búsqueda
     const filtered = comandas.filter((comanda) =>
       comanda.platos.some((plato) =>
         plato.nombre.toLowerCase().includes(searchTerm.toLowerCase())
@@ -61,12 +60,10 @@ const ComandaStyle = () => {
 
   // Función para manejar el cambio en la opción seleccionada
   const handleSelectChange = async (comandaIndex, platoIndex, value) => {
-    // Si el valor seleccionado es "nostock"
     if (value === "sinstock") {
       const updatedComandas = [...filteredComandas];
       const updatedPlatos = [...updatedComandas[comandaIndex].platos];
       const updatedCantidades = [...updatedComandas[comandaIndex].cantidades];
-      // Eliminar la fila que tiene "nostock"
       updatedPlatos.splice(platoIndex, 1);
       updatedCantidades.splice(platoIndex, 1);
       updatedComandas[comandaIndex].platos = updatedPlatos;
@@ -75,7 +72,6 @@ const ComandaStyle = () => {
       console.log(
         `Fila eliminada: comanda ${comandaIndex}, plato ${platoIndex}`
       );
-      // Actualizar la comanda en la base de datos
       try {
         await axios.put(
           `${process.env.REACT_APP_API_COMANDA}/${filteredComandas[comandaIndex]._id}`,
@@ -92,7 +88,6 @@ const ComandaStyle = () => {
         );
       }
     } else {
-      // De lo contrario, actualiza las opciones seleccionadas normalmente
       const updatedOptions = [...selectedOptions];
       updatedOptions[comandaIndex] = {
         ...updatedOptions[comandaIndex],
@@ -115,7 +110,6 @@ const ComandaStyle = () => {
     );
   };
 
-  // Efecto para mostrar la información de la comanda seleccionada
   useEffect(() => {
     if (selectedComanda) {
       console.log("Información de la comanda seleccionada:", selectedComanda);
@@ -159,7 +153,7 @@ const ComandaStyle = () => {
         />
       </div>
       <div className="mt-8">
-        <SearchBar onSearch={handleSearch} />
+        <SearchBar  onSearch={handleSearch} />
       </div>
       <div className="mt-8 border-2 flex justify-center w-1/12 py-3 rounded-xl bg-red-700 text-white">
         <PDFButton data={comandas} />
@@ -175,7 +169,7 @@ const ComandaStyle = () => {
             : numColumnas === 4
             ? "xl:grid grid-cols-4"
             : "xl:grid grid-cols-5"
-        }`}
+          } ${window.innerWidth > 3200 ? 'text-2xl' : ''}`}
       >
         {filteredComandas.map((comanda, comandaIndex) => (
           <div
