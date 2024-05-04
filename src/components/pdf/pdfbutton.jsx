@@ -1,5 +1,6 @@
 import React from "react";
 import jsPDF from "jspdf";
+import { FaFilePdf } from "react-icons/fa6";
 
 const PDFButton = ({ data }) => {
   const generatePDF = () => {
@@ -126,7 +127,7 @@ const PDFButton = ({ data }) => {
     doc.save("informe_ventas.pdf");
   };
 
-  return <button className={`${window.innerWidth > 1536 ? 'text-2xl' : ''}`} onClick={generatePDF}>Reporte</button>;
+  return <button className={`${window.innerWidth > 1536 ? 'text-2xl' : ''}`} onClick={generatePDF}><FaFilePdf size={26} /></button>;
 };
 
 export default PDFButton;

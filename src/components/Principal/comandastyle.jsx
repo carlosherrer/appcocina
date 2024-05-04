@@ -155,7 +155,7 @@ const ComandaStyle = () => {
       <div className="mt-8">
         <SearchBar  onSearch={handleSearch} />
       </div>
-      <div className="mt-8 border-2 flex justify-center w-1/12 py-3 rounded-xl bg-red-700 text-white">
+      <div className="mt-8 border-2 flex justify-center md:w-1/12 w-1/5 py-3 rounded-xl bg-red-700 text-white">
         <PDFButton data={comandas} />
       </div>
       <div
