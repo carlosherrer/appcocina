@@ -21,7 +21,7 @@ const ComandaStyle = () => {
   const obtenerComandas = async () => {
     try {
       const fechaActual = new Date().toISOString().split('T')[0];
-      const response = await axios.get(`${process.env.REACT_APP_API_COMANDA}/fecha/${fechaActual}`);
+      const response = await axios.get(`${process.env.REACT_APP_API_COMANDA}/fechastatus/${fechaActual}`);
       setComandas(response.data);
       const uniqueStatuses = [
         ...(response.data.map((comanda) => comanda.status)),
@@ -76,10 +76,6 @@ const ComandaStyle = () => {
           await axios.put(
             `${process.env.REACT_APP_API_COMANDA}/${comandaId}/status`,
             { nuevoStatus: "entregado" }
-          );
-          await axios.put(
-            `${process.env.REACT_APP_API_COMANDA}/${comandaId}/estado`,
-            { nuevoEstado: false }
           );
         })
       );
