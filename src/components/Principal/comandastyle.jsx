@@ -15,106 +15,80 @@ const ComandaStyle = () => {
   const [filteredComandas, setFilteredComandas] = useState([]);
   const [numColumnas, setNumColumnas] = useState(3);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedOptions, setSelectedOptions] = useState([]);
-  const [selectedComanda, setSelectedComanda] = useState(null);
-
-  useEffect(() => {
-    obtenerComandas();
-  }, []);
+  const [statuses, setStatuses] = useState([]);
+  const [updateTriggered, setUpdateTriggered] = useState(false);
 
   const obtenerComandas = async () => {
     try {
-      const response = await axios.get(process.env.REACT_APP_API_COMANDA);
+      const fechaActual = new Date().toISOString().split('T')[0];
+      const response = await axios.get(`${process.env.REACT_APP_API_COMANDA}/fecha/${fechaActual}`);
       setComandas(response.data);
+      const uniqueStatuses = [
+        ...(response.data.map((comanda) => comanda.status)),
+      ];
+      setStatuses(uniqueStatuses);
     } catch (error) {
       console.error("Error al obtener las comandas:", error);
     }
   };
 
+  //? fetch - interval
   useEffect(() => {
     obtenerComandas();
     const interval = setInterval(() => {
-      obtenerComandas();
-    }, 2000);
+      obtenerComandas()
+    }, 8000);
     return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
     const filtered = comandas.filter((comanda) =>
-      comanda.platos.some((plato) =>
+      searchTerm === '' || comanda.platos.some((plato) =>
         plato.nombre.toLowerCase().includes(searchTerm.toLowerCase())
       )
     );
     setFilteredComandas(filtered);
   }, [comandas, searchTerm]);
 
-  // Función para manejar el cambio en el término de búsqueda
+  useEffect(() => {
+    const allDelivered = filteredComandas.every(
+      (comanda) => comanda.status === "entregado"
+    );
+
+    if (allDelivered && !updateTriggered) {
+      actualizarEstadoComandas();
+    }
+  }, [filteredComandas, updateTriggered]);
+
   const handleSearch = (term) => {
     setSearchTerm(term);
   };
 
-  // Función para manejar el clic en los iconos de selección de columnas
   const handleSeleccionColumnas = (num) => {
     setNumColumnas(num);
   };
 
-  // Función para manejar el cambio en la opción seleccionada
-  const handleSelectChange = async (comandaIndex, platoIndex, value) => {
-    if (value === "sinstock") {
-      const updatedComandas = [...filteredComandas];
-      const updatedPlatos = [...updatedComandas[comandaIndex].platos];
-      const updatedCantidades = [...updatedComandas[comandaIndex].cantidades];
-      updatedPlatos.splice(platoIndex, 1);
-      updatedCantidades.splice(platoIndex, 1);
-      updatedComandas[comandaIndex].platos = updatedPlatos;
-      updatedComandas[comandaIndex].cantidades = updatedCantidades;
-      setFilteredComandas(updatedComandas);
-      console.log(
-        `Fila eliminada: comanda ${comandaIndex}, plato ${platoIndex}`
+  const actualizarEstadoComandas = async () => {
+    try {
+      const comandaIds = filteredComandas.map((comanda) => comanda._id);
+      await Promise.all(
+        comandaIds.map(async (comandaId) => {
+          await axios.put(
+            `${process.env.REACT_APP_API_COMANDA}/${comandaId}/status`,
+            { nuevoStatus: "entregado" }
+          );
+          await axios.put(
+            `${process.env.REACT_APP_API_COMANDA}/${comandaId}/estado`,
+            { nuevoEstado: false }
+          );
+        })
       );
-      try {
-        await axios.put(
-          `${process.env.REACT_APP_API_COMANDA}/${filteredComandas[comandaIndex]._id}`,
-          {
-            platos: updatedPlatos,
-            cantidades: updatedCantidades,
-          }
-        );
-        console.log("Comanda actualizada en la base de datos.");
-      } catch (error) {
-        console.error(
-          "Error al actualizar la comanda en la base de datos:",
-          error
-        );
-      }
-    } else {
-      const updatedOptions = [...selectedOptions];
-      updatedOptions[comandaIndex] = {
-        ...updatedOptions[comandaIndex],
-        [platoIndex]: value,
-      };
-      setSelectedOptions(updatedOptions);
-      console.log(
-        `Comanda: ${comandaIndex}, Fila: ${platoIndex}, Valor seleccionado: ${value}`
-      );
+      obtenerComandas();
+      setUpdateTriggered(true);
+    } catch (error) {
+      console.error("Error al actualizar el estado de las comandas:", error);
     }
   };
-
-  const todasFilasEntregadas = (comandaIndex) => {
-    const comanda = filteredComandas[comandaIndex];
-    if (!selectedOptions[comandaIndex]) return false;
-    const selectedPlatos = Object.values(selectedOptions[comandaIndex]);
-    return (
-      selectedPlatos.length === comanda.platos.length &&
-      selectedPlatos.every((value) => value === "entregado")
-    );
-  };
-
-  useEffect(() => {
-    if (selectedComanda) {
-      console.log("Información de la comanda seleccionada:", selectedComanda);
-    }
-  }, [selectedComanda]);
 
   return (
     <div className="w-full">
@@ -153,7 +127,7 @@ const ComandaStyle = () => {
         />
       </div>
       <div className="mt-8">
-        <SearchBar  onSearch={handleSearch} />
+        <SearchBar onSearch={handleSearch} />
       </div>
       <div className="mt-8 border-2 flex justify-center md:w-1/12 w-1/5 py-3 rounded-xl bg-red-700 text-white">
         <PDFButton data={comandas} />
@@ -169,15 +143,12 @@ const ComandaStyle = () => {
             : numColumnas === 4
             ? "xl:grid grid-cols-4"
             : "xl:grid grid-cols-5"
-          } ${window.innerWidth > 3200 ? 'text-2xl' : ''}`}
+        } ${window.innerWidth > 3200 ? "text-2xl" : ""}`}
       >
         {filteredComandas.map((comanda, comandaIndex) => (
           <div
             key={comanda._id}
             className={`mx-4 md:mx-6 mb-8 border-4 rounded-xl border-orange-500 w-auto`}
-            style={{
-              display: todasFilasEntregadas(comandaIndex) ? "none" : "block",
-            }}
           >
             <div className="mt-4 justify-start flex flex-row gap-6 ml-6 font-bold">
               <p>Mozo: {comanda.mozos.name}</p>
@@ -189,47 +160,27 @@ const ComandaStyle = () => {
                 <div className="w-8/12 text-center">Plato</div>
               </div>
               {comanda.platos.map((plato, platoIndex) => (
-                <div key={plato._id} className={`items-center flex flex-row`}>
+                <div
+                  key={plato._id}
+                  className={`items-center flex flex-row mb-6`}
+                >
                   <div className="w-1/4 text-center">
                     {comanda.cantidades[platoIndex]}
                   </div>
                   <div className="w-11/12 text-center">{plato.nombre}</div>
                   <div>
-                    <select
-                      className="bg-white border border-gray-300 rounded-md px-4 py-2 mt-4 mb-4"
-                      value={
-                        (selectedOptions[comandaIndex] &&
-                          selectedOptions[comandaIndex][platoIndex]) ||
-                        ""
-                      }
-                      onChange={(e) =>
-                        handleSelectChange(
-                          comandaIndex,
-                          platoIndex,
-                          e.target.value
-                        )
-                      }
-                      disabled={
-                        selectedOptions[comandaIndex] &&
-                        selectedOptions[comandaIndex][platoIndex] === "entregado"
-                      }
-                    >
-                      <option value="preparacion" className="bg-yellow-200">
-                        Preparación
-                      </option>
-                      <option value="recoger" className="bg-blue-400">
-                        Recoger
-                      </option>
-                      <option value="entregado" className="bg-green-400">
-                        Entregado
-                      </option>
-                      <option value="sinstock" className="bg-red-400">
-                        Sin Stock
-                      </option>
-                    </select>
+                    <input type="checkbox" className="w-6 h-6"/>
                   </div>
                 </div>
               ))}
+            </div>
+            <div className="flex justify-center mb-8">
+              <select onChange={(e) => actualizarEstadoComandas(comanda._id, e.target.value)}>
+                <option value="preparacion">Preparación</option>
+                <option value="recoger">Recoger</option>
+                <option value="entregado">Entregado</option>
+                <option value="nostock">No Stock</option>
+              </select>
             </div>
             {comanda.observaciones && comanda.observaciones.trim() !== "" && (
               <div className="mt-4 text-center font-bold">Observaciones</div>
