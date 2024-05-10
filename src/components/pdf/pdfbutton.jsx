@@ -1,8 +1,29 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import jsPDF from "jspdf";
 import { FaFilePdf } from "react-icons/fa6";
 
-const PDFButton = ({ data }) => {
+const PDFButton = () => {
+
+  const [data, setData] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const currentDate = new Date().toISOString().split("T")[0];
+      const url = `${process.env.REACT_APP_API_COMANDA}/fecha/${currentDate}?status=entregado`;
+
+      try {
+        const response = await fetch(url);
+        const responseData = await response.json();
+        const entregadoComandas = responseData.filter(comanda => comanda.status === "entregado");
+        setData(entregadoComandas);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
   const generatePDF = () => {
     const doc = new jsPDF();
 
@@ -122,8 +143,6 @@ const PDFButton = ({ data }) => {
       );
       y += 10;
     });
-
-    // Guardar el PDF
     doc.save("informe_ventas.pdf");
   };
 
