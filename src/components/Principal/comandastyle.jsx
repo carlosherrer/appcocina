@@ -63,6 +63,7 @@ const ComandaStyle = () => {
     const newComandas = [...comandas];
     const comanda = newComandas[comandaIndex];
     const plato = comanda.platos[platoIndex];
+    const newComandasJSON = JSON.stringify(newComandas);
 
     if (selectedOption === "nostock") {
       comanda.platos.splice(platoIndex, 1);
@@ -73,12 +74,16 @@ const ComandaStyle = () => {
     } else {
       plato.status = selectedOption;
       setComandas(newComandas);
-
+      console.log(newComandas);
       const todasEntregadas = comanda.platos.every(plato => plato.status === "entregado");
+      console.log(todasEntregadas);
       if (todasEntregadas) {
         try {
           await axios.put(`${process.env.REACT_APP_API_COMANDA}/${comanda._id}/status`, { nuevoStatus: "entregado" });
           console.log("Estado de la comanda actualizado exitosamente");
+          localStorage.setItem('newComandas', newComandasJSON);
+          console.log(newComandasJSON);
+          console.log(localStorage.getItem('newComandas'));
           obtenerComandas();
         } catch (error) {
           console.error("Error al cambiar el estado de la comanda", error);

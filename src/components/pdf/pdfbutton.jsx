@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import jsPDF from "jspdf";
 import { FaFilePdf } from "react-icons/fa6";
+import moment from "moment-timezone";
+
 
 const PDFButton = () => {
 
@@ -8,7 +10,7 @@ const PDFButton = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const currentDate = new Date().toISOString().split("T")[0];
+      const currentDate = moment().tz('America/Lima').format('YYYY-MM-DD');
       const url = `${process.env.REACT_APP_API_COMANDA}/fecha/${currentDate}?status=entregado`;
 
       try {
