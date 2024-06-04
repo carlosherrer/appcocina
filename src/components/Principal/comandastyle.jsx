@@ -11,6 +11,11 @@ import SearchBar from "../additionals/SearchBar";
 import PDFButton from "../pdf/pdfbutton";
 import moment from "moment-timezone";
 
+const STATUS_ORDER = {
+  ENTREGADO: "entregado",
+  NO_STOCK: "nostock",
+}
+
 const ComandaStyle = () => {
   const [comandas, setComandas] = useState([]);
   const [filteredComandas, setFilteredComandas] = useState([]);
@@ -19,9 +24,19 @@ const ComandaStyle = () => {
 
   const obtenerComandas = async () => {
     try {
-      const fechaActual = moment().tz('America/Lima').format('YYYY-MM-DD');
-      const response = await axios.get(`${process.env.REACT_APP_API_COMANDA}/fechastatus/${fechaActual}`);
-      setComandas(response.data);
+      const fechaActual = moment().tz("America/Lima").format("YYYY-MM-DD");
+      const response = await axios.get(
+        `${process.env.REACT_APP_API_COMANDA}/fechastatus/${fechaActual}`
+      );
+      const formatData = response.data.map((e) => {
+        const comanda = comandas.find(item => item._id === e._id)
+        return {
+          ...e,
+          platos: e.platos.map((plato, index) => ({ ...plato, status: comanda?.platos?.at?.(index)?.status ?? "preparado" })),
+        };
+      });
+      localStorage.setItem("comandas", JSON.stringify(formatData));
+      setComandas(formatData);
     } catch (error) {
       console.error("Error al obtener las comandas:", error);
     }
@@ -32,10 +47,12 @@ const ComandaStyle = () => {
   }, []);
 
   useEffect(() => {
-    const filtered = comandas.filter((comanda) =>
-      searchTerm === '' || comanda.platos.some((plato) =>
-        plato.nombre.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+    const filtered = comandas.filter(
+      (comanda) =>
+        searchTerm === "" ||
+        comanda.platos.some((plato) =>
+          plato.nombre.toLowerCase().includes(searchTerm.toLowerCase())
+        )
     );
     setFilteredComandas(filtered);
   }, [comandas, searchTerm]);
@@ -58,40 +75,49 @@ const ComandaStyle = () => {
     }
   };
 
+  const verifyComanda = (newState, comandaIndex) => {
+    const comanda = newState.find((_element, index) => index === comandaIndex)
+    const isVerify = comanda.platos.every(plato => plato.status === STATUS_ORDER.ENTREGADO)
+    return {comanda, isVerify}
+  }
+
   const handleSelectChange = async (event, comandaIndex, platoIndex) => {
     const selectedOption = event.target.value;
-    const newComandas = [...comandas];
-    const comanda = newComandas[comandaIndex];
-    const plato = comanda.platos[platoIndex];
-    const newComandasJSON = JSON.stringify(newComandas);
+    let newComandas = comandas.map((comanda, index) => 
+      index === comandaIndex 
+        ? {
+            ...comanda,
+            platos: comanda.platos.map((plato, localPlatoIndex) => 
+              localPlatoIndex === platoIndex 
+                ? { ...plato, status: selectedOption } 
+                : plato
+            ),
+          } 
+        : comanda
+    );
 
-    if (selectedOption === "nostock") {
-      comanda.platos.splice(platoIndex, 1);
-      comanda.cantidades.splice(platoIndex, 1);
-      setComandas(newComandas);
+    if (selectedOption === STATUS_ORDER.NO_STOCK) {
+      newComandas = newComandas.map((comanda, index) =>
+        index === comandaIndex
+          ? {
+              ...comanda,
+              platos: comanda.platos.filter((_, localPlatoIndex) => localPlatoIndex !== platoIndex),
+            }
+          : comanda
+      );
+      await actualizarComanda(comandas[comandaIndex]._id, newComandas[comandaIndex].platos);
+    }
 
-      await actualizarComanda(comanda._id, comanda.platos);
-    } else {
-      plato.status = selectedOption;
-      setComandas(newComandas);
-      console.log(newComandas);
-      const todasEntregadas = comanda.platos.every(plato => plato.status === "entregado");
-      console.log(todasEntregadas);
-      if (todasEntregadas) {
-        try {
-          await axios.put(`${process.env.REACT_APP_API_COMANDA}/${comanda._id}/status`, { nuevoStatus: "entregado" });
-          console.log("Estado de la comanda actualizado exitosamente");
-          localStorage.setItem('newComandas', newComandasJSON);
-          console.log(newComandasJSON);
-          console.log(localStorage.getItem('newComandas'));
-          obtenerComandas();
-        } catch (error) {
-          console.error("Error al cambiar el estado de la comanda", error);
-        }
-      }
+    setComandas(newComandas);
+    localStorage.setItem("comandas", JSON.stringify(newComandas));
+
+    const { comanda, isVerify } = verifyComanda(newComandas, comandaIndex);
+    if (isVerify) {
+      await axios.put(`${process.env.REACT_APP_API_COMANDA}/${comanda._id}/status`, { nuevoStatus: "entregado" });
+      setComandas(prev => prev.filter((element, index) => element._id !== comanda._id));
+      obtenerComandas();
     }
   };
-
 
   return (
     <div className="w-full">
@@ -172,8 +198,13 @@ const ComandaStyle = () => {
                   </div>
                   <div className="w-11/12 text-center">{plato.nombre}</div>
                   <div className="flex justify-center">
-                    <select onChange={(e) => handleSelectChange(e, comandaIndex, platoIndex)}>
-                      <option value="preparacion">Preparación</option>
+                    <select
+                      value={plato.status}
+                      onChange={(e) =>
+                        handleSelectChange(e, comandaIndex, platoIndex)
+                      }
+                    >
+                      <option value="preparacion">Preparacion</option>
                       <option value="recoger">Recoger</option>
                       <option value="entregado">Entregado</option>
                       <option value="nostock">No Stock</option>
