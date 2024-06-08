@@ -3,9 +3,7 @@ import jsPDF from "jspdf";
 import { FaFilePdf } from "react-icons/fa6";
 import moment from "moment-timezone";
 
-
 const PDFButton = () => {
-
   const [data, setData] = useState([]);
 
   useEffect(() => {
@@ -43,12 +41,12 @@ const PDFButton = () => {
     const cantidadesPorCategoria = {};
 
     data.forEach((comanda) => {
-      let totalComanda = 0; 
+      let totalComanda = 0;
 
       comanda.cantidades.forEach((cantidad, index) => {
         totalPlatos += cantidad;
-        const plato = comanda.platos[index];
-        if (plato && plato.categoria) { 
+        const plato = comanda.platos[index].plato;
+        if (plato && plato.categoria) {
           const categoria = plato.categoria;
           if (!cantidadesPorCategoria[categoria]) {
             cantidadesPorCategoria[categoria] = {};
@@ -58,10 +56,10 @@ const PDFButton = () => {
         }
       });
 
-      comanda.platos.forEach((plato, index) => {
-        const precio = parseFloat(plato.precio) || 0;
+      comanda.platos.forEach((platoObj, index) => {
+        const precio = parseFloat(platoObj.plato.precio) || 0;
         const cantidad = parseInt(comanda.cantidades[index]) || 0;
-        totalComanda += precio * cantidad; 
+        totalComanda += precio * cantidad;
       });
 
       const mesa = comanda.mesas.nummesa;

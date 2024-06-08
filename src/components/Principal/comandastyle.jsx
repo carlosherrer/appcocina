@@ -11,11 +11,6 @@ import SearchBar from "../additionals/SearchBar";
 import PDFButton from "../pdf/pdfbutton";
 import moment from "moment-timezone";
 
-const STATUS_ORDER = {
-  ENTREGADO: "entregado",
-  NO_STOCK: "nostock",
-}
-
 const ComandaStyle = () => {
   const [comandas, setComandas] = useState([]);
   const [filteredComandas, setFilteredComandas] = useState([]);
@@ -28,22 +23,17 @@ const ComandaStyle = () => {
       const response = await axios.get(
         `${process.env.REACT_APP_API_COMANDA}/fechastatus/${fechaActual}`
       );
-      const formatData = response.data.map((e) => {
-        const comanda = comandas.find(item => item._id === e._id)
-        return {
-          ...e,
-          platos: e.platos.map((plato, index) => ({ ...plato, status: comanda?.platos?.at?.(index)?.status ?? "preparado" })),
-        };
-      });
-      localStorage.setItem("comandas", JSON.stringify(formatData));
-      setComandas(formatData);
+      setComandas(response.data);
     } catch (error) {
       console.error("Error al obtener las comandas:", error);
     }
   };
 
   useEffect(() => {
-    obtenerComandas();
+    const intervalId = setInterval(() => {
+      obtenerComandas();
+    }, 2000);
+    return () => clearInterval(intervalId);
   }, []);
 
   useEffect(() => {
@@ -51,7 +41,7 @@ const ComandaStyle = () => {
       (comanda) =>
         searchTerm === "" ||
         comanda.platos.some((plato) =>
-          plato.nombre.toLowerCase().includes(searchTerm.toLowerCase())
+          plato.plato.nombre.toLowerCase().includes(searchTerm.toLowerCase())
         )
     );
     setFilteredComandas(filtered);
@@ -65,59 +55,62 @@ const ComandaStyle = () => {
     setNumColumnas(num);
   };
 
-  const actualizarComanda = async (comandaId, platosActualizados) => {
+  const verificarYActualizarEstadoComanda = async (comanda) => {
+    const todosEntregados = comanda.platos.every(plato => plato.estado === "entregado");
+
+    if (todosEntregados) {
+      try {
+        await axios.put(`${process.env.REACT_APP_API_COMANDA}/${comanda._id}/status`, { nuevoStatus: "entregado" });
+        obtenerComandas();
+      } catch (error) {
+        console.error("Error al actualizar el estado de la comanda:", error);
+      }
+    }
+  };
+
+  const handleSelectChange = async (e, comandaIndex, platoIndex) => {
+    const nuevoEstado = e.target.value;
+    const comandaId = comandas[comandaIndex]._id;
+    const platoId = comandas[comandaIndex].platos[platoIndex].plato._id;
+  
     try {
-      await axios.put(`${process.env.REACT_APP_API_COMANDA}/${comandaId}`, { platos: platosActualizados });
-      console.log("Comanda actualizada exitosamente");
-      obtenerComandas();
+      if (nuevoEstado === "nostock") {
+        const updatedComandas = [...comandas];
+        updatedComandas[comandaIndex].platos = updatedComandas[comandaIndex].platos.filter((_, index) => index !== platoIndex);
+        updatedComandas[comandaIndex].cantidades = updatedComandas[comandaIndex].cantidades.filter((_, index) => index !== platoIndex);
+        
+        await axios.put(
+          `${process.env.REACT_APP_API_COMANDA}/${comandaId}`,
+          updatedComandas[comandaIndex]
+        );
+        
+        setComandas(updatedComandas);
+        setFilteredComandas(updatedComandas);
+      } else if (nuevoEstado === "entregado") {
+        const response = await axios.put(
+          `${process.env.REACT_APP_API_COMANDA}/${comandaId}/plato/${platoId}/estado`,
+          { nuevoEstado }
+        );
+        const updatedComandas = [...comandas];
+        updatedComandas[comandaIndex].platos[platoIndex].estado = nuevoEstado;
+        setComandas(updatedComandas);
+        setFilteredComandas(updatedComandas);
+        await verificarYActualizarEstadoComanda(updatedComandas[comandaIndex]);
+      } else {
+        const response = await axios.put(
+          `${process.env.REACT_APP_API_COMANDA}/${comandaId}/plato/${platoId}/estado`,
+          { nuevoEstado }
+        );
+        const updatedComandas = [...comandas];
+        updatedComandas[comandaIndex].platos[platoIndex].estado = nuevoEstado;
+        setComandas(updatedComandas);
+        setFilteredComandas(updatedComandas);
+      }
     } catch (error) {
-      console.error("Error al actualizar la comanda", error);
+      console.error("Error al cambiar el estado del plato:", error);
     }
   };
-
-  const verifyComanda = (newState, comandaIndex) => {
-    const comanda = newState.find((_element, index) => index === comandaIndex)
-    const isVerify = comanda.platos.every(plato => plato.status === STATUS_ORDER.ENTREGADO)
-    return {comanda, isVerify}
-  }
-
-  const handleSelectChange = async (event, comandaIndex, platoIndex) => {
-    const selectedOption = event.target.value;
-    let newComandas = comandas.map((comanda, index) => 
-      index === comandaIndex 
-        ? {
-            ...comanda,
-            platos: comanda.platos.map((plato, localPlatoIndex) => 
-              localPlatoIndex === platoIndex 
-                ? { ...plato, status: selectedOption } 
-                : plato
-            ),
-          } 
-        : comanda
-    );
-
-    if (selectedOption === STATUS_ORDER.NO_STOCK) {
-      newComandas = newComandas.map((comanda, index) =>
-        index === comandaIndex
-          ? {
-              ...comanda,
-              platos: comanda.platos.filter((_, localPlatoIndex) => localPlatoIndex !== platoIndex),
-            }
-          : comanda
-      );
-      await actualizarComanda(comandas[comandaIndex]._id, newComandas[comandaIndex].platos);
-    }
-
-    setComandas(newComandas);
-    localStorage.setItem("comandas", JSON.stringify(newComandas));
-
-    const { comanda, isVerify } = verifyComanda(newComandas, comandaIndex);
-    if (isVerify) {
-      await axios.put(`${process.env.REACT_APP_API_COMANDA}/${comanda._id}/status`, { nuevoStatus: "entregado" });
-      setComandas(prev => prev.filter((element, index) => element._id !== comanda._id));
-      obtenerComandas();
-    }
-  };
+  
 
   return (
     <div className="w-full">
@@ -134,25 +127,25 @@ const ComandaStyle = () => {
       <div className="mt-8 px-4 hidden w-full gap-4 md:gap-10 justify-end lg:hidden md:hidden xl:flex 2xl:hidden">
         <Bs3SquareFill
           onClick={() => handleSeleccionColumnas(3)}
-          className="cursor-pointer md:text-5xl text-2xl"
+          className="cursor-pointer md:text-4xl text-2xl"
         />
         <Bs4SquareFill
           onClick={() => handleSeleccionColumnas(4)}
-          className="cursor-pointer md:text-5xl text-2xl"
+          className="cursor-pointer md:text-4xl text-2xl"
         />
       </div>
       <div className="mt-8 px-4 hidden w-full gap-4 md:gap-10 justify-end sm:hidden lg:hidden md:hidden xl:hidden 2xl:flex">
         <Bs3SquareFill
           onClick={() => handleSeleccionColumnas(3)}
-          className="cursor-pointer md:text-5xl text-2xl"
+          className="cursor-pointer md:text-4xl text-2xl"
         />
         <Bs4SquareFill
           onClick={() => handleSeleccionColumnas(4)}
-          className="cursor-pointer md:text-5xl text-2xl"
+          className="cursor-pointer md:text-4xl text-2xl"
         />
         <Bs5SquareFill
           onClick={() => handleSeleccionColumnas(5)}
-          className="cursor-pointer md:text-5xl text-2xl"
+          className="cursor-pointer md:text-4xl text-2xl"
         />
       </div>
       <div className="mt-8">
@@ -179,13 +172,14 @@ const ComandaStyle = () => {
             key={comanda._id}
             className={`mx-4 md:mx-6 mb-8 border-4 rounded-xl border-orange-500 w-auto`}
           >
-            <div className="mt-4 justify-start flex flex-row gap-6 ml-6 font-bold">
+            <div className="mt-4 justify-center flex flex-row gap-6 text-sm font-bold">
+              <p>Nro: {comanda.comandaNumber}</p>
               <p>Mozo: {comanda.mozos.name}</p>
               <p>Mesa: {comanda.mesas.nummesa}</p>
             </div>
             <div className="mt-4 justify-center md:mx-4 flex flex-col gap-4">
-              <div className="ml-2 flex justify-start flex-row font-bold">
-                <div className="text-center">Cantidad</div>
+              <div className="flex justify-start flex-row font-bold">
+                <div className="text-center">Cnt</div>
                 <div className="w-8/12 text-center">Plato</div>
               </div>
               {comanda.platos.map((plato, platoIndex) => (
@@ -193,21 +187,22 @@ const ComandaStyle = () => {
                   key={plato._id}
                   className={`items-center flex flex-row mb-6`}
                 >
-                  <div className="w-1/4 text-center">
+                  <div className="w-1/12 text-center">
                     {comanda.cantidades[platoIndex]}
                   </div>
-                  <div className="w-11/12 text-center">{plato.nombre}</div>
+                  <div className="w-11/12 px-4 text-center">{plato.plato.nombre}</div>
                   <div className="flex justify-center">
                     <select
-                      value={plato.status}
+                      value={plato.estado}
                       onChange={(e) =>
                         handleSelectChange(e, comandaIndex, platoIndex)
                       }
+                      disabled={plato.estado === "entregado"}
                     >
-                      <option value="preparacion">Preparacion</option>
-                      <option value="recoger">Recoger</option>
-                      <option value="entregado">Entregado</option>
-                      <option value="nostock">No Stock</option>
+                      <option value="preparacion" className="text-center">Preparacion</option>
+                      <option value="recoger" className="text-center">Recoger</option>
+                      <option value="entregado" className="text-center">Entregado</option>
+                      <option value="nostock" className="text-center">No Stock</option>
                     </select>
                   </div>
                 </div>
