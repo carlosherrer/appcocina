@@ -26,10 +26,12 @@ const PDFButton = () => {
 
   const generatePDF = () => {
     const doc = new jsPDF();
+    const currentDate = moment().tz('America/Lima').format('YYYY-MM-DD');
 
     if (!data || data.length === 0) {
       doc.setFontSize(12);
       doc.text("No hay datos disponibles", 10, 20);
+      doc.text(currentDate, doc.internal.pageSize.getWidth() - 50, 10); // Fecha en la esquina superior derecha
       doc.save("informe_ventas.pdf");
       return;
     }
@@ -39,6 +41,7 @@ const PDFButton = () => {
     let dineroTotal = 0;
     const ventasPorMozo = {};
     const cantidadesPorCategoria = {};
+    const montoPorCategoria = {};
 
     data.forEach((comanda) => {
       let totalComanda = 0;
@@ -53,6 +56,11 @@ const PDFButton = () => {
           }
           cantidadesPorCategoria[categoria][plato.nombre] =
             (cantidadesPorCategoria[categoria][plato.nombre] || 0) + cantidad;
+          if (!montoPorCategoria[categoria]) {
+            montoPorCategoria[categoria] = {};
+          }
+          const precioTotal = (montoPorCategoria[categoria][plato.nombre] || 0) + (cantidad * plato.precio);
+          montoPorCategoria[categoria][plato.nombre] = precioTotal;
         }
       });
 
@@ -72,7 +80,7 @@ const PDFButton = () => {
 
     const pdfWidth = doc.internal.pageSize.getWidth();
 
-    const addCantidadesPorCategoriaToPDF = (cantidadesPorCategoria, startY) => {
+    const addCantidadesPorCategoriaToPDF = (cantidadesPorCategoria, montoPorCategoria, startY) => {
       let y = startY;
       Object.keys(cantidadesPorCategoria).forEach((categoria) => {
         doc.text(`${categoria}:`, 10, y);
@@ -82,8 +90,10 @@ const PDFButton = () => {
             doc.addPage();
             y = 20;
           }
+          const cantidad = cantidadesPorCategoria[categoria][plato];
+          const monto = montoPorCategoria[categoria][plato].toFixed(2);
           doc.text(
-            `${cantidadesPorCategoria[categoria][plato]} : ${plato}`,
+            `${cantidad} : ${plato} - S/.${monto}`,
             20,
             y
           );
@@ -104,9 +114,11 @@ const PDFButton = () => {
     doc.text(titleText, titleX, 20);
 
     doc.setFontSize(12);
+    doc.text(currentDate, pdfWidth - 50, 10);
+
     let y = 35;
 
-    y = addCantidadesPorCategoriaToPDF(cantidadesPorCategoria, y);
+    y = addCantidadesPorCategoriaToPDF(cantidadesPorCategoria, montoPorCategoria, y);
 
     y += 5;
     doc.text("Ventas por Mozo:", 10, y);
@@ -119,13 +131,13 @@ const PDFButton = () => {
         doc.addPage();
         y = 20;
       }
-      doc.text(`Mozo ${mozoName}: $${ventasPorMozo[mozoId].toFixed(2)}`, 20, y);
+      doc.text(`Mozo ${mozoName}: S/.${ventasPorMozo[mozoId].toFixed(2)}`, 20, y);
       y += 10;
     });
 
     y += 5;
     doc.text(
-      `Dinero Total de Todas las Comandas: $${dineroTotal.toFixed(2)}`,
+      `Dinero Total de Todas las Comandas: S/.${dineroTotal.toFixed(2)}`,
       10,
       y
     );
@@ -137,7 +149,7 @@ const PDFButton = () => {
         y = 20;
       }
       doc.text(
-        `Dinero Total por Mesa ${mesa}: $${dineroPorMesa[mesa].toFixed(2)}`,
+        `Dinero Total por Mesa ${mesa}: S/.${dineroPorMesa[mesa].toFixed(2)}`,
         20,
         y
       );
