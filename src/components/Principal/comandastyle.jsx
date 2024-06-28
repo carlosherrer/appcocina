@@ -10,6 +10,7 @@ import {
 import SearchBar from "../additionals/SearchBar";
 import PDFButton from "../pdf/pdfbutton";
 import moment from "moment-timezone";
+import PDFComanda from "../pdf/pdfcomanda";
 
 const ComandaStyle = () => {
   const [comandas, setComandas] = useState([]);
@@ -56,11 +57,16 @@ const ComandaStyle = () => {
   };
 
   const verificarYActualizarEstadoComanda = async (comanda) => {
-    const todosEntregados = comanda.platos.every(plato => plato.estado === "entregado");
+    const todosEntregados = comanda.platos.every(
+      (plato) => plato.estado === "entregado"
+    );
 
     if (todosEntregados) {
       try {
-        await axios.put(`${process.env.REACT_APP_API_COMANDA}/${comanda._id}/status`, { nuevoStatus: "entregado" });
+        await axios.put(
+          `${process.env.REACT_APP_API_COMANDA}/${comanda._id}/status`,
+          { nuevoStatus: "entregado" }
+        );
         obtenerComandas();
       } catch (error) {
         console.error("Error al actualizar el estado de la comanda:", error);
@@ -72,18 +78,22 @@ const ComandaStyle = () => {
     const nuevoEstado = e.target.value;
     const comandaId = comandas[comandaIndex]._id;
     const platoId = comandas[comandaIndex].platos[platoIndex].plato._id;
-  
+
     try {
       if (nuevoEstado === "nostock") {
         const updatedComandas = [...comandas];
-        updatedComandas[comandaIndex].platos = updatedComandas[comandaIndex].platos.filter((_, index) => index !== platoIndex);
-        updatedComandas[comandaIndex].cantidades = updatedComandas[comandaIndex].cantidades.filter((_, index) => index !== platoIndex);
-        
+        updatedComandas[comandaIndex].platos = updatedComandas[
+          comandaIndex
+        ].platos.filter((_, index) => index !== platoIndex);
+        updatedComandas[comandaIndex].cantidades = updatedComandas[
+          comandaIndex
+        ].cantidades.filter((_, index) => index !== platoIndex);
+
         await axios.put(
           `${process.env.REACT_APP_API_COMANDA}/${comandaId}`,
           updatedComandas[comandaIndex]
         );
-        
+
         setComandas(updatedComandas);
         setFilteredComandas(updatedComandas);
       } else if (nuevoEstado === "entregado") {
@@ -110,7 +120,6 @@ const ComandaStyle = () => {
       console.error("Error al cambiar el estado del plato:", error);
     }
   };
-  
 
   return (
     <div className="w-full">
@@ -151,8 +160,13 @@ const ComandaStyle = () => {
       <div className="mt-8">
         <SearchBar onSearch={handleSearch} />
       </div>
-      <div className="mt-8 border-2 flex justify-center md:w-1/12 w-1/5 py-3 rounded-xl bg-red-700 text-white">
-        <PDFButton data={comandas} />
+      <div className="flex">
+        <div className="mt-8 border-2 flex justify-center md:w-1/12 w-1/5 py-3 rounded-xl bg-red-700 text-white">
+          <PDFButton data={comandas} />
+        </div>
+        <div className="mt-8 border-2 flex justify-center md:w-1/12 w-1/5 py-3 rounded-xl bg-yellow-500 text-white">
+          <PDFComanda data={comandas} />
+        </div>
       </div>
       <div
         className={`mt-10 flex flex-row flex-wrap justify-center ${
@@ -190,7 +204,9 @@ const ComandaStyle = () => {
                   <div className="w-1/12 text-center">
                     {comanda.cantidades[platoIndex]}
                   </div>
-                  <div className="w-11/12 px-4 text-center">{plato.plato.nombre}</div>
+                  <div className="w-11/12 px-4 text-center">
+                    {plato.plato.nombre}
+                  </div>
                   <div className="flex justify-center">
                     <select
                       value={plato.estado}
@@ -199,10 +215,18 @@ const ComandaStyle = () => {
                       }
                       disabled={plato.estado === "entregado"}
                     >
-                      <option value="preparacion" className="text-center">Preparacion</option>
-                      <option value="recoger" className="text-center">Recoger</option>
-                      <option value="entregado" className="text-center">Entregado</option>
-                      <option value="nostock" className="text-center">No Stock</option>
+                      <option value="preparacion" className="text-center">
+                        Preparacion
+                      </option>
+                      <option value="recoger" className="text-center">
+                        Recoger
+                      </option>
+                      <option value="entregado" className="text-center">
+                        Entregado
+                      </option>
+                      <option value="nostock" className="text-center">
+                        No Stock
+                      </option>
                     </select>
                   </div>
                 </div>
