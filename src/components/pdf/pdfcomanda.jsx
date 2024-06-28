@@ -1,15 +1,16 @@
 import React, { useEffect, useState } from "react";
 import jsPDF from "jspdf";
-import { FaEnvelopeOpenText } from "react-icons/fa";
+import { FaFilePdf } from "react-icons/fa6";
 import moment from "moment-timezone";
 
-const PDFComanda = () => {
+const PDFButton = () => {
   const [data, setData] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
       const currentDate = moment().tz('America/Lima').format('YYYY-MM-DD');
       const url = `${process.env.REACT_APP_API_COMANDA}/fecha/${currentDate}`;
+
       try {
         const response = await fetch(url);
         const responseData = await response.json();
@@ -29,7 +30,7 @@ const PDFComanda = () => {
     if (!data || data.length === 0) {
       doc.setFontSize(12);
       doc.text("No hay datos disponibles", 10, 20);
-      doc.text(currentDate, doc.internal.pageSize.getWidth() - 50, 10);
+      doc.text(currentDate, doc.internal.pageSize.getWidth() - 50, 10); // Fecha en la esquina superior derecha
       doc.save("pdfcomanda.pdf");
       return;
     }
@@ -48,9 +49,11 @@ const PDFComanda = () => {
 
     let y = 35;
     data.forEach((comanda, index) => {
-      if (y + 10 > doc.internal.pageSize.height - 10) {
-        doc.addPage();
-        y = 20;
+      if (index !== 0) {
+        y += 0.5;
+        doc.setLineWidth(0.5);
+        doc.line(10, y, pdfWidth - 10, y);
+        y += 10;
       }
 
       doc.text(`Comanda Número: ${comanda.comandaNumber}`, 10, y);
@@ -73,7 +76,7 @@ const PDFComanda = () => {
         y += 10;
       });
 
-      y += 10;
+      y += 2;
     });
 
     doc.save("pdfcomanda.pdf");
@@ -81,9 +84,9 @@ const PDFComanda = () => {
 
   return (
     <button onClick={generatePDF}>
-      <FaEnvelopeOpenText size={26} />
+      <FaFilePdf size={26} />
     </button>
   );
 };
 
-export default PDFComanda;
+export default PDFButton;
