@@ -215,6 +215,9 @@ const ComandaStyle = () => {
                       }
                       disabled={plato.estado === "entregado"}
                     >
+                      <option value="ingresante" className="text-center">
+                        ingresante
+                      </option>
                       <option value="preparacion" className="text-center">
                         Preparacion
                       </option>
