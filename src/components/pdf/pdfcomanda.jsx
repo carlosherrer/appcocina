@@ -21,6 +21,9 @@ const PDFButton = () => {
     };
 
     fetchData();
+    const intervalId = setInterval(fetchData, 1000);
+
+    return () => clearInterval(intervalId);
   }, []);
 
   const generatePDF = () => {
@@ -30,7 +33,7 @@ const PDFButton = () => {
     if (!data || data.length === 0) {
       doc.setFontSize(12);
       doc.text("No hay datos disponibles", 10, 20);
-      doc.text(currentDate, doc.internal.pageSize.getWidth() - 50, 10); // Fecha en la esquina superior derecha
+      doc.text(currentDate, doc.internal.pageSize.getWidth() - 50, 10); 
       doc.save("pdfcomanda.pdf");
       return;
     }

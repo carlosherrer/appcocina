@@ -22,6 +22,9 @@ const PDFButton = () => {
     };
 
     fetchData();
+    const intervalId = setInterval(fetchData, 1000);
+
+    return () => clearInterval(intervalId);
   }, []);
 
   const generatePDF = () => {
