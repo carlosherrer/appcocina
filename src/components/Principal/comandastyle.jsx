@@ -121,6 +121,23 @@ const ComandaStyle = () => {
     }
   };
 
+  const getBackgroundColor = (estado) => {
+    switch (estado) {
+      case "ingresante":
+        return "bg-orange-400";
+      case "preparacion":
+        return "bg-sky-300";
+      case "recoger":
+        return "bg-yellow-400";
+      case "entregado":
+        return "bg-green-400";
+      case "nostock":
+        return "bg-red-600";
+      default:
+        return "";
+    }
+  };
+
   return (
     <div className="w-full">
       <div className="mt-8 px-4 hidden w-full gap-4 md:gap-10 justify-end sm:hidden md:flex lg:flex xl:hidden">
@@ -213,6 +230,9 @@ const ComandaStyle = () => {
                       onChange={(e) =>
                         handleSelectChange(e, comandaIndex, platoIndex)
                       }
+                      className={`${
+                        getBackgroundColor(plato.estado)
+                      }`}
                       disabled={plato.estado === "entregado"}
                     >
                       <option value="ingresante" className="text-center bg-orange-400">
