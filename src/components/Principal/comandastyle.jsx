@@ -80,8 +80,8 @@ const ComandaStyle = () => {
     const platoId = comandas[comandaIndex].platos[platoIndex].plato._id;
 
     try {
+      let updatedComandas = [...comandas];
       if (nuevoEstado === "nostock") {
-        const updatedComandas = [...comandas];
         updatedComandas[comandaIndex].platos = updatedComandas[
           comandaIndex
         ].platos.filter((_, index) => index !== platoIndex);
@@ -89,37 +89,32 @@ const ComandaStyle = () => {
           comandaIndex
         ].cantidades.filter((_, index) => index !== platoIndex);
 
-        await axios.put(
-          `${process.env.REACT_APP_API_COMANDA}/${comandaId}`,
-          updatedComandas[comandaIndex]
-        );
-
-        setComandas(updatedComandas);
-        setFilteredComandas(updatedComandas);
-      } else if (nuevoEstado === "entregado") {
-        const response = await axios.put(
-          `${process.env.REACT_APP_API_COMANDA}/${comandaId}/plato/${platoId}/estado`,
-          { nuevoEstado }
-        );
-        const updatedComandas = [...comandas];
-        updatedComandas[comandaIndex].platos[platoIndex].estado = nuevoEstado;
-        setComandas(updatedComandas);
-        setFilteredComandas(updatedComandas);
-        await verificarYActualizarEstadoComanda(updatedComandas[comandaIndex]);
+        if (updatedComandas[comandaIndex].platos.length === 0) {
+          // Eliminar comanda si no tiene platos
+          updatedComandas = updatedComandas.filter((_, index) => index !== comandaIndex);
+          await axios.delete(`${process.env.REACT_APP_API_COMANDA}/${comandaId}`);
+        } else {
+          await axios.put(`${process.env.REACT_APP_API_COMANDA}/${comandaId}`, updatedComandas[comandaIndex]);
+        }
       } else {
-        const response = await axios.put(
+        await axios.put(
           `${process.env.REACT_APP_API_COMANDA}/${comandaId}/plato/${platoId}/estado`,
           { nuevoEstado }
         );
-        const updatedComandas = [...comandas];
         updatedComandas[comandaIndex].platos[platoIndex].estado = nuevoEstado;
-        setComandas(updatedComandas);
-        setFilteredComandas(updatedComandas);
+
+        if (nuevoEstado === "entregado") {
+          await verificarYActualizarEstadoComanda(updatedComandas[comandaIndex]);
+        }
       }
+
+      setComandas(updatedComandas);
+      setFilteredComandas(updatedComandas);
     } catch (error) {
       console.error("Error al cambiar el estado del plato:", error);
     }
   };
+
 
   const getBackgroundColor = (estado) => {
     switch (estado) {
