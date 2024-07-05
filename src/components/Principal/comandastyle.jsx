@@ -150,10 +150,6 @@ const ComandaStyle = () => {
           onClick={() => handleSeleccionColumnas(3)}
           className="cursor-pointer md:text-4xl text-2xl"
         />
-        <Bs4SquareFill
-          onClick={() => handleSeleccionColumnas(4)}
-          className="cursor-pointer md:text-4xl text-2xl"
-        />
       </div>
       <div className="mt-8 px-4 hidden w-full gap-4 md:gap-10 justify-end sm:hidden lg:hidden md:hidden xl:hidden 2xl:flex">
         <Bs3SquareFill
