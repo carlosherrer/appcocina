@@ -33,7 +33,7 @@ const ComandaStyle = () => {
   useEffect(() => {
     const intervalId = setInterval(() => {
       obtenerComandas();
-    }, 2000);
+    }, 3000);
     return () => clearInterval(intervalId);
   }, []);
 
