@@ -81,20 +81,21 @@ const ComandaStyle = () => {
 
     try {
       let updatedComandas = [...comandas];
+
       if (nuevoEstado === "nostock") {
-        updatedComandas[comandaIndex].platos = updatedComandas[
-          comandaIndex
-        ].platos.filter((_, index) => index !== platoIndex);
-        updatedComandas[comandaIndex].cantidades = updatedComandas[
-          comandaIndex
-        ].cantidades.filter((_, index) => index !== platoIndex);
+        updatedComandas[comandaIndex].platos.splice(platoIndex, 1);
+        updatedComandas[comandaIndex].cantidades.splice(platoIndex, 1);
 
         if (updatedComandas[comandaIndex].platos.length === 0) {
-          // Eliminar comanda si no tiene platos
-          updatedComandas = updatedComandas.filter((_, index) => index !== comandaIndex);
-          await axios.delete(`${process.env.REACT_APP_API_COMANDA}/${comandaId}`);
+          await axios.delete(
+            `${process.env.REACT_APP_API_COMANDA}/${comandaId}`
+          );
+          updatedComandas.splice(comandaIndex, 1);
         } else {
-          await axios.put(`${process.env.REACT_APP_API_COMANDA}/${comandaId}`, updatedComandas[comandaIndex]);
+          await axios.put(
+            `${process.env.REACT_APP_API_COMANDA}/${comandaId}`,
+            updatedComandas[comandaIndex]
+          );
         }
       } else {
         await axios.put(
@@ -104,7 +105,9 @@ const ComandaStyle = () => {
         updatedComandas[comandaIndex].platos[platoIndex].estado = nuevoEstado;
 
         if (nuevoEstado === "entregado") {
-          await verificarYActualizarEstadoComanda(updatedComandas[comandaIndex]);
+          await verificarYActualizarEstadoComanda(
+            updatedComandas[comandaIndex]
+          );
         }
       }
 
@@ -114,7 +117,6 @@ const ComandaStyle = () => {
       console.error("Error al cambiar el estado del plato:", error);
     }
   };
-
 
   const getBackgroundColor = (estado) => {
     switch (estado) {
@@ -221,24 +223,37 @@ const ComandaStyle = () => {
                       onChange={(e) =>
                         handleSelectChange(e, comandaIndex, platoIndex)
                       }
-                      className={`${
-                        getBackgroundColor(plato.estado)
-                      }`}
+                      className={`${getBackgroundColor(plato.estado)}`}
                       disabled={plato.estado === "entregado"}
                     >
-                      <option value="ingresante" className="text-center bg-orange-400">
+                      <option
+                        value="ingresante"
+                        className="text-center bg-orange-400"
+                      >
                         ingresante
                       </option>
-                      <option value="preparacion" className="text-center bg-sky-300">
+                      <option
+                        value="preparacion"
+                        className="text-center bg-sky-300"
+                      >
                         Preparacion
                       </option>
-                      <option value="recoger" className="text-center bg-yellow-400">
+                      <option
+                        value="recoger"
+                        className="text-center bg-yellow-400"
+                      >
                         Recoger
                       </option>
-                      <option value="entregado" className="text-center bg-green-400">
+                      <option
+                        value="entregado"
+                        className="text-center bg-green-400"
+                      >
                         Entregado
                       </option>
-                      <option value="nostock" className="text-center bg-red-600">
+                      <option
+                        value="nostock"
+                        className="text-center bg-red-600"
+                      >
                         No Stock
                       </option>
                     </select>
